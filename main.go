@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -13,6 +15,13 @@ var recipes []Recipe
 
 func init() {
 	recipes = make([]Recipe, 0)
+	file, err := os.ReadFile("recipes.json")
+	if err != nil {
+		panic(err)
+	}
+	if err = json.Unmarshal(file, &recipes); err != nil {
+		panic(err)
+	}
 }
 
 func main() {
