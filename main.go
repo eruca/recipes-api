@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -13,6 +15,13 @@ var recipes []Recipe
 
 func init() {
 	recipes = make([]Recipe, 0)
+	file, err := os.ReadFile("recipes.json")
+	if err != nil {
+		panic(err)
+	}
+	if err = json.Unmarshal(file, &recipes); err != nil {
+		panic(err)
+	}
 }
 
 func main() {
@@ -20,6 +29,8 @@ func main() {
 	router.Use(Cors())
 	router.POST("/recipes", NewRecipeHandler)
 	router.GET("/recipes", ListRecipesHandler)
+	router.PUT("/recipes/:id", UpdateRecipeHandler)
+	router.DELETE("/recipes/:id", DeleteRecipeHandler)
 	log.Fatal(router.Run(":8080"))
 }
 
@@ -64,4 +75,45 @@ func Cors() gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+func UpdateRecipeHandler(c *gin.Context) {
+	id := c.Param("id")
+	var recipe Recipe
+	if err := c.ShouldBindJSON(&recipe); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	index := -1
+	for i := 0; i < len(recipes); i++ {
+		if recipes[i].ID == id {
+			index = i
+		}
+	}
+	if index == -1 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "recipe not found"})
+		return
+	}
+	recipe.ID = id
+	recipes[index] = recipe
+	c.JSON(http.StatusOK, recipe)
+}
+
+func DeleteRecipeHandler(c *gin.Context) {
+	id := c.Param("id")
+	index := -1
+	for i := 0; i < len(recipes); i++ {
+		if recipes[i].ID == id {
+			index = i
+		}
+	}
+	if index == -1 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "recipe not found"})
+		return
+	}
+	recipes = append(recipes[:index], recipes[index+1:]...)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Recipe has been deleted",
+	})
 }
