@@ -1,0 +1,16 @@
+{
+    "name":"homemade Pizza",
+    "tags": ["italian","pizza","dinner"],
+    "ingredients": [
+        "1 1/2 cups (335 ml) warn water (105℉ - 115℉)",
+        "2 package (2 1/4 teaspoons) of active dry yeast",
+        "3 3/4 cups (490g) bread flour",
+        "tomato sauce",
+        "feta cheese, firm mozzarella cheese, grated"
+    ],
+    "instructions":[
+        "Step 1:",
+        "Step 2:",
+        "Step 3:"
+    ]
+ }
