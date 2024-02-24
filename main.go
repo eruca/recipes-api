@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -9,9 +10,21 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/xid"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-var recipes []Recipe
+const (
+	ENV_MONGO_URI      = "MONGO_URI"
+	ENV_MONGO_DATABASE = "MONGO_DATABASE"
+	COLLECTION         = "recipes"
+)
+
+var (
+	recipes []Recipe
+	client  *mongo.Client
+)
 
 func init() {
 	recipes = make([]Recipe, 0)
@@ -21,6 +34,41 @@ func init() {
 	}
 	if err = json.Unmarshal(file, &recipes); err != nil {
 		panic(err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	client, err = mongo.Connect(ctx,
+		options.Client().ApplyURI(os.Getenv(ENV_MONGO_URI)))
+	if err != nil {
+		panic(err)
+	}
+	defer func() {
+		if err := client.Disconnect(ctx); err != nil {
+			panic(err)
+		}
+	}()
+
+	ctx, cancel = context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	err = client.Ping(ctx, readpref.Primary())
+	if err != nil {
+		log.Panicln(err)
+	}
+	log.Println("Connected to MongoDB")
+
+	reci := make([]any, len(recipes))
+	for i := range recipes {
+		reci[i] = recipes[i]
+	}
+
+	collection := client.Database(os.Getenv(ENV_MONGO_DATABASE)).Collection(COLLECTION)
+	if result, err := collection.InsertMany(ctx, reci); err != nil {
+		log.Panicln(err)
+	} else {
+		log.Println("Inserted recipes: ", len(result.InsertedIDs))
 	}
 }
 
