@@ -7,6 +7,7 @@ import (
 
 	"github.com/eruca/recipes-api/handlers"
 	"github.com/gin-gonic/gin"
+	redis "github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -32,7 +33,16 @@ func init() {
 	}
 	log.Println("Connected to MongoDB")
 	collection := client.Database(os.Getenv(ENV_MONGO_DATABASE)).Collection(COLLECTION)
-	recipesHandler = handlers.NewRecipeHandler(ctx, collection)
+
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	})
+	status := redisClient.Ping(ctx)
+	log.Println("Redis Client Ping:", status.String())
+
+	recipesHandler = handlers.NewRecipeHandler(ctx, collection, redisClient)
 }
 
 func main() {
